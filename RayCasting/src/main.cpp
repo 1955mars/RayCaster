@@ -35,6 +35,10 @@ GLfloat light0_Amb[] = {0.4f, 0.3f, 0.3f, 1.0f};
 GLfloat light0_Diff[] = {0.8f, 0.8f, 0.7f, 1.0f};
 GLfloat light0_Spec[] = {0.9f, 0.9f, 0.9f, 1.0f};
 
+vec4 light0Ambient = vec4(light0_pos[0], light0_pos[1], light0_pos[2], light0_pos[3]);
+vec4 litht0Diffuse = vec4(light0_Diff[0], light0_Diff[1], light0_Diff[2], light0_Diff[3]);
+vec4 light0Spec = vec4(light0_Spec[0], light0_Spec[1], light0_Spec[2], light0_Spec[3]);
+
 const char dataFile[128] = "geoData/geo.txt";
 
 unsigned int g_box_num;
@@ -47,10 +51,10 @@ Light g_light;
 
 unsigned char* imagedata = new unsigned char[g_winWidth * g_winHeight * 3];
 GLuint glTexID = -1;
-float vertices[4 * 2] = { -320, -240,
-                           320, -240,
-                           320,  240,
-                          -320,  240 };
+float vertices[4 * 2] = { 0, 0,
+                           640, 0,
+                           640, 480,
+                           0,  480 };
 float texCoords[4 * 2] = { 0, 0,
                          1, 0,
                          1, 1,
@@ -302,6 +306,9 @@ void drawTexture(float* texCoords, float* vertices, unsigned char* imagedata)
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, glTexID); // use the texture on the quad 
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imagedata);
+
     glBegin(GL_QUADS);
     glTexCoord2fv(texCoords + 2 * 0); glVertex2fv(vertices + 2 * 0);
     glTexCoord2fv(texCoords + 2 * 1); glVertex2fv(vertices + 2 * 1);
@@ -335,16 +342,19 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
         {
             if (rayCasted.rayType == RayType::SHADOW)
             {
-                cout << "Shadow ray has intersection with geometry!" << endl;
+                //cout << "Shadow ray has intersection with geometry!" << endl;
                 return IntersectType::INTERSECT;
             }
                 
-            cout << "Intersection with box : " << i << endl;
-            entryPoint.Print();
+            //cout << "Intersection with box : " << i << endl;
+            //entryPoint.Print();
 
             if (!hasFoundOne)
             {
                 closestPoint = entryPoint;
+                closestPoint.objectHit = (void*)(g_boxes + i);
+                closestPoint.objType = ObjectType::BOX;
+
                 entryPointDistance = distance2(rayCasted.rayPoint, entryPoint.point);
                 hasFoundOne = true;
             }
@@ -353,7 +363,9 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
                 float newDistance = distance2(rayCasted.rayPoint, entryPoint.point);
                 if (newDistance < entryPointDistance)
                 {
-                    closestPoint = entryPoint;
+                    closestPoint = entryPoint; 
+                    closestPoint.objectHit = (void*)(g_boxes + i);
+
                     entryPointDistance = newDistance;
                 }
             } 
@@ -361,7 +373,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
         }
         else
         {
-            cout << "No intersection with box " << i << endl;
+            //cout << "No intersection with box " << i << endl;
         }
     }
 
@@ -372,7 +384,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
     {
         if (rayCasted.rayType == RayType::SHADOW)
         {
-            cout << "Shadow ray hasn't intersected with any geometry" << endl;
+            //cout << "Shadow ray hasn't intersected with any geometry" << endl;
             return IntersectType::NONE;
         }
 
@@ -396,10 +408,10 @@ struct PhongData
 
 vec4 PhongColor(vec4& shadowRay, vec4& invPriRay, vec4& normal, vec4& reflRay)
 {
-    vec3 Ia;
+    return vec4(0.0f);
 }
 
-void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
+void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec4& rColor)
 {
     //Find closest intersection point in all the geometry
     vec4 iPoint;
@@ -414,8 +426,8 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
 
     if (iStatus == IntersectType::INTERSECT)
     {
-        cout << "Primary ray intersection point found" << endl;
-        hitPoint.Print();
+        //cout << "Primary ray intersection point found" << endl;
+        //hitPoint.Print();
 
         RayCasted shadowRay{};
         shadowRay.rayType = RayType::SHADOW;
@@ -428,34 +440,50 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
 
         if (shadowStatus == IntersectType::NONE)
         {
-            cout << "Seconday ray no intersection" << endl;
+            //cout << "Seconday ray no intersection! Do Bling Phong computation here!" << endl;
             
             //Calculate Blinn Phong light model
             vec4 sRay = shadowRay.rayDir; //Hit point to light
             vec4 vRay = normalize(rayPoint - hitPoint.point); // hit point to eye
             vec4 nRay = hitPoint.normalRay; //Normal
-            vec4 rRay = (2.0f * nRay * dot(nRay, sRay)) - sRay;
-
-      
+            vec4 rRay = normalize((2.0f * nRay * dot(nRay, sRay)) - sRay);
             
+            float ambient;
+            float diffuse;
+            float phong;
+            vec4 objColor;
 
-            rColor = vec3(1.0f, 1.0f, 0.0f);
+            if (hitPoint.objType == ObjectType::BOX)
+            {
+                Box* hitBox = (Box*)hitPoint.objectHit;
+                ambient = hitBox->ambient;
+                diffuse = hitBox->diffuse;
+                phong = hitBox->phong;
+                objColor = vec4(hitBox->color, 1.0f);
+            }
+
+            vec4 Ia = ambient * light0Ambient;
+            vec4 Id = diffuse * litht0Diffuse * max(0.0f, dot(sRay, nRay));
+            vec4 Is = phong * light0Spec * pow(max(0.0f, dot(rRay, vRay)),50);
+
+            rColor = normalize(((Ia + Id) * objColor + Is) * vec4(g_light.color, 1.0f));
+            rColor = (rColor + vec4(1.0f, 1.0f, 1.0f, 1.0f)) * 127.5f;
             return;
         }
         else
         {
-            cout << "Secondary ray has intersection" << endl;
+            //cout << "Secondary ray has intersection" << endl;
 
-            rColor = vec3(0.0f);
+            rColor = vec4(0.0f);
             return;
         }
     }
     else if (iStatus == IntersectType::NONE)
     {
-        cout << "Primary ray doesn't have any intersection" << endl;
+        //cout << "Primary ray doesn't have any intersection" << endl;
 
         //Return background color here
-        rColor = vec3(0.0f);
+        rColor = vec4(0.0f);
         return;
     }
 
@@ -473,6 +501,18 @@ void rayCast()
     vec4 deltaRight = (1.0f / g_winWidth) * (g_cam.nbr - g_cam.nbl);
 
     vec4 basePixelPos = g_cam.nbl;
+    
+    float depth = (g_cam.eye.z - g_cam.near_plane);
+
+    vertices[0 * 2 + 0] = g_cam.nbl.x * depth; vertices[0 * 2 + 1] = g_cam.nbl.y * depth;
+    vertices[1 * 2 + 0] = g_cam.nbr.x * depth; vertices[1 * 2 + 1] = g_cam.nbr.y * depth;
+    vertices[2 * 2 + 0] = g_cam.ntr.x * depth; vertices[2 * 2 + 1] = g_cam.ntr.y * depth;
+    vertices[3 * 2 + 0] = g_cam.ntl.x * depth; vertices[3 * 2 + 1] = g_cam.ntl.y * depth;
+
+    //texCoords[0 * 2 + 0] = vertices[0 * 2 + 0]; texCoords[0 * 2 + 1] = vertices[0 * 2 + 1];
+    //texCoords[1 * 2 + 0] = vertices[1 * 2 + 0]; texCoords[1 * 2 + 1] = vertices[1 * 2 + 1];
+    //texCoords[2 * 2 + 0] = vertices[2 * 2 + 0]; texCoords[2 * 2 + 1] = vertices[2 * 2 + 1];
+    //texCoords[3 * 2 + 0] = vertices[3 * 2 + 0]; texCoords[3 * 2 + 1] = vertices[3 * 2 + 1];
 
     int k = 0;
 
@@ -483,11 +523,11 @@ void rayCast()
         {
             vec4 pos = startRowPixel + (j * 1.0f * deltaRight * screenRightDirection);
             vec4 dir = normalize(pos - g_cam.eye);
-            vec3 pixelColor(0.0f);
+            vec4 pixelColor(-1.0f);
             rayTracer(pos, dir, pixelColor);
-            imagedata[k * 3 + 0] = (pixelColor.r) * 255;
-            imagedata[k * 3 + 1] = (pixelColor.g) * 255;
-            imagedata[k * 3 + 2] = (pixelColor.b) * 255;
+            imagedata[k * 3 + 0] = pixelColor.r;
+            imagedata[k * 3 + 1] = pixelColor.g;
+            imagedata[k * 3 + 2] = pixelColor.b;
             k++;
         }
     }
@@ -503,37 +543,40 @@ void display()
 	glEnable(GL_LIGHTING);
 	glLightfv(GL_LIGHT0, GL_POSITION, light0_pos); // commenting out this line to make object always lit up in front of the cam. 
 
-    //rayCast();
-    //drawTexture(texCoords, vertices, imagedata);
+    rayCast();
+    drawTexture(texCoords, vertices, imagedata);
 
-    vec3 rColor(0.0f);
-    rayTracer(g_cam.eye, normalize(vec4(0.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
+    //vec4 rColor(0.0f);
+    //rayTracer(g_cam.eye, normalize(vec4(2.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
+    //cout << "Color returned for the ray" << endl;
+    //printPos(rColor);
 
-    Ray ray(vec4(0.0), vec4(0.0f));
-    ray.Draw(10.0f);
+
+    //Ray ray(vec4(0.0), vec4(0.0f));
+    //ray.Draw(10.0f);
 
      //drae sphere and box
     //for (int i=0; i<g_sphere_num; i++)
     //    g_spheres[i].Draw();
-    for (int i=0; i<g_box_num; i++)
-        g_boxes[i].Draw();
+    //for (int i=0; i<g_box_num; i++)
+    //    g_boxes[i].Draw();
 
     // displaying the camera
-    g_cam.drawGrid();
-    g_cam.drawCoordinateOnScreen(g_winWidth, g_winHeight);
-    g_cam.drawCoordinate();
+    //g_cam.drawGrid();
+    //g_cam.drawCoordinateOnScreen(g_winWidth, g_winHeight);
+    //g_cam.drawCoordinate();
 
 	// displaying the text
-	if(g_cam.isFocusMode()) {
-        string str = "Cam mode: Focus";
-		g_text.draw(10, 30, const_cast<char*>(str.c_str()), g_winWidth, g_winHeight);
-	} else if(g_cam.isFPMode()) {
-        string str = "Cam mode: FP";
-		g_text.draw(10, 30, const_cast<char*>(str.c_str()), g_winWidth, g_winHeight);
-	}
+	//if(g_cam.isFocusMode()) {
+ //       string str = "Cam mode: Focus";
+	//	g_text.draw(10, 30, const_cast<char*>(str.c_str()), g_winWidth, g_winHeight);
+	//} else if(g_cam.isFPMode()) {
+ //       string str = "Cam mode: FP";
+	//	g_text.draw(10, 30, const_cast<char*>(str.c_str()), g_winWidth, g_winHeight);
+	//}
 
-	char s[128];
-	g_text.draw(10, 50, s, g_winWidth, g_winHeight);
+	//char s[128];
+	//g_text.draw(10, 50, s, g_winWidth, g_winHeight);
 
 
     glutSwapBuffers();

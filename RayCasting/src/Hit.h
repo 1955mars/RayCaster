@@ -10,13 +10,20 @@ enum class RayType
 	PRIMARY = 0, SHADOW
 };
 
+enum class ObjectType
+{
+	BOX = 0, SPHERE
+};
+
 struct HitPoint
 {
 	vec4 point;
 	vec4 normalRay;
+	void* objectHit;
+	ObjectType objType;
 
 	HitPoint(vec4 p = vec4(vec3(0.0f),1.0f), vec4 n = vec4(0.0f))
-		:point(p), normalRay(n)
+		:point(p), normalRay(n),  objectHit(nullptr), objType(ObjectType::BOX)
 	{
 
 	}

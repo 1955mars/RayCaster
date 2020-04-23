@@ -85,7 +85,7 @@ FaceInterType Box::RayFaceIntersection(FaceType type, const RayCasted& rayCasted
     float dDotN = dot(rayCasted.rayDir, faceDir);
     if (abs(dDotN) < error)
     {
-        cout << "Ray and Face are parallel" << endl;
+        //cout << "Ray and Face are parallel" << endl;
         return FaceInterType::NONE;
     }
 
@@ -112,9 +112,9 @@ bool Box::isPointinBox(const vec4& q)
     vec4 newMin = vec4(minPos, 1.0f);
     vec4 newMax = vec4(maxPos, 1.0f);
 
-    cout << "CheckPoint: (" << p.x << ", " << p.y << ", " << p.z << endl;
-    cout << "newMin: (" << newMin.x << ", " << newMin.y << ", " << newMin.z << endl;
-    cout << "newMax: (" << newMax.x << ", " << newMax.y << ", " << newMax.z << endl;
+    //cout << "CheckPoint: (" << p.x << ", " << p.y << ", " << p.z << endl;
+    //cout << "newMin: (" << newMin.x << ", " << newMin.y << ", " << newMin.z << endl;
+    //cout << "newMax: (" << newMax.x << ", " << newMax.y << ", " << newMax.z << endl;
 
     if( (p.x + error) > newMin.x && (p.x - error) < newMax.x &&
         (p.y + error) > newMin.y && (p.y - error) < newMax.y &&
@@ -133,28 +133,28 @@ bool Box::RayBoxIntersection(const RayCasted& rayCasted, HitPoint& hitPoint)
     {
         if (rayCasted.rayType == RayType::PRIMARY)
         {
-            cout << "rayPoint is within or on the box! Not calculating intersections" << endl;
+            //cout << "rayPoint is within or on the box! Not calculating intersections" << endl;
             return false;
         }
         else if (rayCasted.rayType == RayType::SHADOW)
         {
-            cout << "Shadow ray is originating from this box!" << endl;
+            //cout << "Shadow ray is originating from this box!" << endl;
             if (rayCasted.shadowPoint)
             {
                 if (dot(rayCasted.shadowPoint->normalRay, rayCasted.rayDir) > -error)
                 {
-                    cout << "Shadow ray is going out of the box, no intersection with the box" << endl;
+                    //cout << "Shadow ray is going out of the box, no intersection with the box" << endl;
                     return false;
                 }
                 else
                 {
-                    cout << "Intersection with the box" << endl;
+                    //cout << "Intersection with the box" << endl;
                     return true;
                 }
             }
             else
             {
-                cout << "Shadow ray doesn't have previous hit point" << endl;
+                //cout << "Shadow ray doesn't have previous hit point" << endl;
             }
         }
     }
@@ -172,7 +172,7 @@ bool Box::RayBoxIntersection(const RayCasted& rayCasted, HitPoint& hitPoint)
         FaceInterType interType = RayFaceIntersection(type, rayCasted, interPoint);
         if (interType == FaceInterType::NONE)
         {
-            cout << "No intersection with face: " << int(type) << endl;
+            //cout << "No intersection with face: " << int(type) << endl;
             continue;
         }
         else if (interType == FaceInterType::TOWARDS)
@@ -235,13 +235,13 @@ bool Box::RayBoxIntersection(const RayCasted& rayCasted, HitPoint& hitPoint)
 
             }
         }
-        cout << "Face : " << (int)type << endl;
-        cout << "Intersection point" << endl;
-        interPoint.Print();
-        cout << "Entry point" << endl;
-        entryPoint.Print();
-        cout << "Exit point" << endl;
-        exitPoint.Print();
+        //cout << "Face : " << (int)type << endl;
+        //cout << "Intersection point" << endl;
+        //interPoint.Print();
+        //cout << "Entry point" << endl;
+        //entryPoint.Print();
+        //cout << "Exit point" << endl;
+        //exitPoint.Print();
     }
 
     if (initEntryPoint && !isPointinBox(entryPoint.point))

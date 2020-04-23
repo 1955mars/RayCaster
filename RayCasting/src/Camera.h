@@ -27,11 +27,13 @@ public:
 	vec4         ftr;	          // the far-to-right
 	vec4	     fbl;	          // the far-bottom-left
 
+	float           fovy;              // view angle 
+	float           aspect;            // the window ration equal to w/h
+	float           near_plane;
+	float           far_plane;
+
 private:
-    float           fovy;              // view angle 
-    float           aspect;            // the window ration equal to w/h
-    float           near_plane;
-    float           far_plane;
+
 
     vec4			axis_n;            //eye-lookat
     vec4		    axis_u;

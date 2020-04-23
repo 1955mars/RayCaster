@@ -52,7 +52,7 @@ public:
         glVertex3f(p1.x, p1.y, p1.z);
 
         glVertex3f(0.0f, 0.0f, 8.0f);
-        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(2.0f, 0.0f, 0.0f);
 
         glColor3f(0.0f, 0.0f, 1.0f);
         glVertex3f(0.0f, 0.0f, 1.0f);
