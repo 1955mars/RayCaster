@@ -365,6 +365,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
                 {
                     closestPoint = entryPoint; 
                     closestPoint.objectHit = (void*)(g_boxes + i);
+                    closestPoint.objType = ObjectType::SPHERE;
 
                     entryPointDistance = newDistance;
                 }
@@ -378,6 +379,50 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
     }
 
     //TODO: Spheres
+    for (int i = 0; i < g_sphere_num; i++)
+    {
+        HitPoint entryPoint{};
+
+        bool iStatus = g_spheres[i].RaySphereIntersection(rayCasted, entryPoint);
+        if (iStatus)
+        {
+            if (rayCasted.rayType == RayType::SHADOW)
+            {
+                //cout << "Shadow ray has intersection with geometry!" << endl;
+                return IntersectType::INTERSECT;
+            }
+
+            //cout << "Intersection with Sphere: " << i << endl;
+            //entryPoint.Print();
+
+            if (!hasFoundOne)
+            {
+                closestPoint = entryPoint;
+                closestPoint.objectHit = (void*)(g_boxes + i);
+                closestPoint.objType = ObjectType::SPHERE;
+
+                entryPointDistance = distance2(rayCasted.rayPoint, entryPoint.point);
+                hasFoundOne = true;
+            }
+            else
+            {
+                float newDistance = distance2(rayCasted.rayPoint, entryPoint.point);
+                if (newDistance < entryPointDistance)
+                {
+                    closestPoint = entryPoint;
+                    closestPoint.objectHit = (void*)(g_spheres + i);
+                    closestPoint.objType = ObjectType::SPHERE;
+
+                    entryPointDistance = newDistance;
+                }
+            }
+            //cout << "EntryPointDistance: " << entryPointDistance << endl;
+        }
+        else
+        {
+            //cout << "No intersection with sphere " << i << endl;
+        }
+    }
 
 
     if (!hasFoundOne)
@@ -460,6 +505,14 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec4& rColor)
                 diffuse = hitBox->diffuse;
                 phong = hitBox->phong;
                 objColor = vec4(hitBox->color, 1.0f);
+            }
+            else if (hitPoint.objType == ObjectType::SPHERE)
+            {
+                Sphere* hitSphere = (Sphere*)hitPoint.objectHit;
+                ambient = hitSphere->ambient;
+                diffuse = hitSphere->diffuse;
+                phong = hitSphere->phong;
+                objColor = vec4(hitSphere->color, 1.0f);
             }
 
             vec4 Ia = ambient * light0Ambient;
@@ -547,7 +600,7 @@ void display()
     drawTexture(texCoords, vertices, imagedata);
 
     //vec4 rColor(0.0f);
-    //rayTracer(g_cam.eye, normalize(vec4(2.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
+    //rayTracer(g_cam.eye, normalize(vec4(0.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
     //cout << "Color returned for the ray" << endl;
     //printPos(rColor);
 
