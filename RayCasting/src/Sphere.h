@@ -38,7 +38,13 @@ public: // it would be better to have some kind of protection on members...
     float diffuse;
 	float phong;
     
-    float error = 10e-3;
+    float error = 0.05;
+
+    float pError = 10e-6;
+    float sError = 10e-2;
+    float sError2 = 1.0f;
+
+    RayType rType = RayType::PRIMARY;
 public:
     Sphere(){};
     ~Sphere(){};

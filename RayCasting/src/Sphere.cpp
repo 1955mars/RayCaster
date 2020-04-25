@@ -15,6 +15,8 @@ using namespace glm;
 
 bool Sphere::RaySphereIntersection(const RayCasted& rayCasted, HitPoint& hitPoint)
 {
+	rType = (rayCasted.rayType == RayType::PRIMARY) ? RayType::PRIMARY : RayType::SHADOW;
+
 	PointLocation pointLocation = isPointinSphere(rayCasted.rayPoint);
 	if (pointLocation != PointLocation::OUTSIDE)
 	{
@@ -27,7 +29,7 @@ bool Sphere::RaySphereIntersection(const RayCasted& rayCasted, HitPoint& hitPoin
 		}
 		else if (rayCasted.rayType == RayType::SHADOW)
 		{
-			if (dot(rayCasted.shadowPoint->normalRay, rayCasted.rayDir) > -error)
+			if (dot(rayCasted.shadowPoint->normalRay, rayCasted.rayDir) > -sError2)
 			{
 				//cout << "Shadow ray is going out of the sphere, no intersection with the sphere" << endl;
 				return false;
@@ -55,7 +57,7 @@ bool Sphere::RaySphereIntersection(const RayCasted& rayCasted, HitPoint& hitPoin
 
 	float b2_4ac = (bCof * bCof) - (4 * aCof * cCof);
 
-	if (b2_4ac < 0.0f)
+	if (b2_4ac < error)
 	{
 		//cout << "b2_4ac is negative! No intersection of ray with this sphere!" << endl;
 		return false;
@@ -86,6 +88,17 @@ bool Sphere::RaySphereIntersection(const RayCasted& rayCasted, HitPoint& hitPoin
 	//cout << "Intersection point with sphere!" << endl;
 	//hitPoint.Print();
 
+	if (rayCasted.rayType == RayType::SHADOW)
+	{
+		if (dot(rayCasted.rayDir, normalize(hitPoint.point - rayCasted.rayPoint)) < 0.0f)
+		{
+			//cout << "Founded ray is behind the shadow point" << endl;
+			return false;
+		}
+			
+
+	}
+
 	return true;
 }
 
@@ -94,16 +107,23 @@ PointLocation Sphere::isPointinSphere(const vec4& iPoint)
 	float disFromCenter = distance2(iPoint, vec4(pos, 1.0f));
 	float r2 = radius * radius;
 
-	if (abs(disFromCenter - r2) < error)
+	if (rType == RayType::PRIMARY)
 	{
-		//cout << "The point is inside or on the sphere!" << endl;
-		return PointLocation::SURFACE;
+		if (disFromCenter > r2 )
+		{
+			//cout << "The point is outside of sphere!" << endl;
+			return PointLocation::OUTSIDE;
+		}
 	}
-	else if (disFromCenter > r2)
+	else if (rType == RayType::SHADOW)
 	{
-		//cout << "The point is outside of sphere!" << endl;
-		return PointLocation::OUTSIDE;
+		if (disFromCenter > (r2 + sError))
+		{
+			//cout << "The point is outside of sphere!" << endl;
+			return PointLocation::OUTSIDE;
+		}
 	}
+
 
 	//cout << "The point is inside the sphere!" << endl;
 	return PointLocation::INSIDE;

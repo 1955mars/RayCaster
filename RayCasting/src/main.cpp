@@ -35,9 +35,9 @@ GLfloat light0_Amb[] = {0.4f, 0.3f, 0.3f, 1.0f};
 GLfloat light0_Diff[] = {0.8f, 0.8f, 0.7f, 1.0f};
 GLfloat light0_Spec[] = {0.9f, 0.9f, 0.9f, 1.0f};
 
-vec4 light0Ambient = vec4(light0_pos[0], light0_pos[1], light0_pos[2], light0_pos[3]);
-vec4 litht0Diffuse = vec4(light0_Diff[0], light0_Diff[1], light0_Diff[2], light0_Diff[3]);
-vec4 light0Spec = vec4(light0_Spec[0], light0_Spec[1], light0_Spec[2], light0_Spec[3]);
+vec3 light0Ambient = vec3(light0_Amb[0], light0_Amb[1], light0_Amb[2]);
+vec3 litht0Diffuse = vec3(light0_Diff[0], light0_Diff[1], light0_Diff[2]);
+vec3 light0Spec = vec3(light0_Spec[0], light0_Spec[1], light0_Spec[2]);
 
 const char dataFile[128] = "geoData/geo.txt";
 
@@ -49,7 +49,7 @@ Sphere * g_spheres;
 
 Light g_light;
 
-unsigned char* imagedata = new unsigned char[g_winWidth * g_winHeight * 3];
+float* imagedata = new float[g_winWidth * g_winHeight * 3];
 GLuint glTexID = -1;
 float vertices[4 * 2] = { 0, 0,
                            640, 0,
@@ -244,7 +244,7 @@ void createTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imagedata);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_FLOAT, imagedata);
 
 }
 
@@ -296,7 +296,7 @@ void SendTextureData(unsigned char* imagedata)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imagedata);
 }
 
-void drawTexture(float* texCoords, float* vertices, unsigned char* imagedata)
+void drawTexture(float* texCoords, float* vertices)
 {
     glDisable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
@@ -307,7 +307,7 @@ void drawTexture(float* texCoords, float* vertices, unsigned char* imagedata)
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, glTexID); // use the texture on the quad 
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imagedata);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_winWidth, g_winHeight, 0, GL_RGB, GL_FLOAT, imagedata);
 
     glBegin(GL_QUADS);
     glTexCoord2fv(texCoords + 2 * 0); glVertex2fv(vertices + 2 * 0);
@@ -320,8 +320,12 @@ void drawTexture(float* texCoords, float* vertices, unsigned char* imagedata)
     glPopMatrix();
 }
 
+void printPos(const vec3& pos)
+{
+    cout << "       (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << endl;
+}
 
-void printPos(vec4& pos)
+void printPos(const vec4& pos)
 {
     cout << "       (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << endl;
 }
@@ -365,7 +369,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
                 {
                     closestPoint = entryPoint; 
                     closestPoint.objectHit = (void*)(g_boxes + i);
-                    closestPoint.objType = ObjectType::SPHERE;
+                    closestPoint.objType = ObjectType::BOX;
 
                     entryPointDistance = newDistance;
                 }
@@ -398,7 +402,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
             if (!hasFoundOne)
             {
                 closestPoint = entryPoint;
-                closestPoint.objectHit = (void*)(g_boxes + i);
+                closestPoint.objectHit = (void*)(g_spheres + i);
                 closestPoint.objType = ObjectType::SPHERE;
 
                 entryPointDistance = distance2(rayCasted.rayPoint, entryPoint.point);
@@ -456,7 +460,7 @@ vec4 PhongColor(vec4& shadowRay, vec4& invPriRay, vec4& normal, vec4& reflRay)
     return vec4(0.0f);
 }
 
-void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec4& rColor)
+void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
 {
     //Find closest intersection point in all the geometry
     vec4 iPoint;
@@ -478,56 +482,68 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec4& rColor)
         shadowRay.rayType = RayType::SHADOW;
         shadowRay.rayPoint = hitPoint.point;
         shadowRay.rayDir = normalize(vec4(g_light.pos, 1.0f) - hitPoint.point); //hit point to light
-        shadowRay.shadowPoint = &hitPoint;
+        HitPoint tempPoint = hitPoint;
+        shadowRay.shadowPoint = &tempPoint;
 
         HitPoint shadowIntersect{};
         IntersectType shadowStatus = intersect(shadowRay, shadowIntersect);
 
+        float ambient;
+        float diffuse;
+        float phong;
+        vec3 objColor;
+
+        if (hitPoint.objType == ObjectType::BOX)
+        {
+            Box* hitBox = (Box*)hitPoint.objectHit;
+            ambient = hitBox->ambient;
+            diffuse = hitBox->diffuse;
+            phong = hitBox->phong;
+            objColor = hitBox->color;
+        }
+        else if (hitPoint.objType == ObjectType::SPHERE)
+        {
+            Sphere* hitSphere = (Sphere*)hitPoint.objectHit;
+            ambient = hitSphere->ambient;
+            diffuse = hitSphere->diffuse;
+            phong = hitSphere->phong;
+            objColor = hitSphere->color;
+        }
+
+        //Calculate Blinn Phong light model
+        vec3 sRay = vec3(shadowRay.rayDir); //Hit point to light
+        vec3 vRay = vec3(normalize(rayPoint - hitPoint.point)); // hit point to eye
+        vec3 nRay = vec3(hitPoint.normalRay); //Normal
+        vec3 rRay = normalize((2.0f * nRay * dot(nRay, sRay)) - sRay);
+
+        vec3 hRay = normalize(sRay + vRay); //Half Ray - Blinn Phong Model
+
+        float lightDistance = distance(vec4(g_light.pos, 1.0f) , hitPoint.point);
+
+        //Phong Model
+        //vec3 Ia = ambient * light0Ambient;
+        vec3 Ia = light0Ambient;
+        vec3 Id = (diffuse * litht0Diffuse * max(0.0f, dot(sRay, nRay)));
+        
+        vec3 Is = phong * light0Spec * pow(max(0.0f, dot(rRay, vRay)), 50);
+
+        //vec3 Is = (phong * vec3(light0Spec) * pow(max(dot(nRay, hRay), 0.0f), 100));
+
+        rColor = ((Ia + Id) * objColor + Is) * g_light.color;
+
+        //printPos(rColor);
+
         if (shadowStatus == IntersectType::NONE)
         {
             //cout << "Seconday ray no intersection! Do Bling Phong computation here!" << endl;
-            
-            //Calculate Blinn Phong light model
-            vec4 sRay = shadowRay.rayDir; //Hit point to light
-            vec4 vRay = normalize(rayPoint - hitPoint.point); // hit point to eye
-            vec4 nRay = hitPoint.normalRay; //Normal
-            vec4 rRay = normalize((2.0f * nRay * dot(nRay, sRay)) - sRay);
-            
-            float ambient;
-            float diffuse;
-            float phong;
-            vec4 objColor;
 
-            if (hitPoint.objType == ObjectType::BOX)
-            {
-                Box* hitBox = (Box*)hitPoint.objectHit;
-                ambient = hitBox->ambient;
-                diffuse = hitBox->diffuse;
-                phong = hitBox->phong;
-                objColor = vec4(hitBox->color, 1.0f);
-            }
-            else if (hitPoint.objType == ObjectType::SPHERE)
-            {
-                Sphere* hitSphere = (Sphere*)hitPoint.objectHit;
-                ambient = hitSphere->ambient;
-                diffuse = hitSphere->diffuse;
-                phong = hitSphere->phong;
-                objColor = vec4(hitSphere->color, 1.0f);
-            }
-
-            vec4 Ia = ambient * light0Ambient;
-            vec4 Id = diffuse * litht0Diffuse * max(0.0f, dot(sRay, nRay));
-            vec4 Is = phong * light0Spec * pow(max(0.0f, dot(rRay, vRay)),50);
-
-            rColor = normalize(((Ia + Id) * objColor + Is) * vec4(g_light.color, 1.0f));
-            rColor = (rColor + vec4(1.0f, 1.0f, 1.0f, 1.0f)) * 127.5f;
             return;
         }
         else
         {
             //cout << "Secondary ray has intersection" << endl;
 
-            rColor = vec4(0.0f);
+            rColor = 0.25f * rColor;
             return;
         }
     }
@@ -536,7 +552,7 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec4& rColor)
         //cout << "Primary ray doesn't have any intersection" << endl;
 
         //Return background color here
-        rColor = vec4(0.0f);
+        rColor = vec3(0.0f);
         return;
     }
 
@@ -576,11 +592,11 @@ void rayCast()
         {
             vec4 pos = startRowPixel + (j * 1.0f * deltaRight * screenRightDirection);
             vec4 dir = normalize(pos - g_cam.eye);
-            vec4 pixelColor(-1.0f);
-            rayTracer(pos, dir, pixelColor);
-            imagedata[k * 3 + 0] = pixelColor.r;
-            imagedata[k * 3 + 1] = pixelColor.g;
-            imagedata[k * 3 + 2] = pixelColor.b;
+            vec3 pixelColor(0.0f);
+            rayTracer(g_cam.eye, dir, pixelColor);
+            imagedata[k * 3 + 0] = (pixelColor.r);// * 255.0f);
+            imagedata[k * 3 + 1] = (pixelColor.g);// * 255.0f);
+            imagedata[k * 3 + 2] = (pixelColor.b);// * 255.0f);
             k++;
         }
     }
@@ -597,7 +613,7 @@ void display()
 	glLightfv(GL_LIGHT0, GL_POSITION, light0_pos); // commenting out this line to make object always lit up in front of the cam. 
 
     rayCast();
-    drawTexture(texCoords, vertices, imagedata);
+    drawTexture(texCoords, vertices);
 
     //vec4 rColor(0.0f);
     //rayTracer(g_cam.eye, normalize(vec4(0.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
@@ -609,7 +625,7 @@ void display()
     //ray.Draw(10.0f);
 
      //drae sphere and box
-    //for (int i=0; i<g_sphere_num; i++)
+    //for (int i=1; i<g_sphere_num; i++)
     //    g_spheres[i].Draw();
     //for (int i=0; i<g_box_num; i++)
     //    g_boxes[i].Draw();
