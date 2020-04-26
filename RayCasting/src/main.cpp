@@ -347,6 +347,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
             if (rayCasted.rayType == RayType::SHADOW)
             {
                 //cout << "Shadow ray has intersection with geometry!" << endl;
+                hitPoint.objType = ObjectType::BOX;
                 return IntersectType::INTERSECT;
             }
                 
@@ -392,6 +393,7 @@ IntersectType intersect(const RayCasted& rayCasted, HitPoint& hitPoint)
         {
             if (rayCasted.rayType == RayType::SHADOW)
             {
+                hitPoint.objType = ObjectType::SPHERE;
                 //cout << "Shadow ray has intersection with geometry!" << endl;
                 return IntersectType::INTERSECT;
             }
@@ -510,7 +512,8 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
             objColor = hitSphere->color;
         }
 
-        //Calculate Blinn Phong light model
+        //Calculating lighting
+
         vec3 sRay = vec3(shadowRay.rayDir); //Hit point to light
         vec3 vRay = vec3(normalize(rayPoint - hitPoint.point)); // hit point to eye
         vec3 nRay = vec3(hitPoint.normalRay); //Normal
@@ -520,14 +523,14 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
 
         float lightDistance = distance(vec4(g_light.pos, 1.0f) , hitPoint.point);
 
-        //Phong Model
+
         //vec3 Ia = ambient * light0Ambient;
         vec3 Ia = light0Ambient;
         vec3 Id = (diffuse * litht0Diffuse * max(0.0f, dot(sRay, nRay)));
         
-        vec3 Is = phong * light0Spec * pow(max(0.0f, dot(rRay, vRay)), 50);
+        //vec3 Is = phong * light0Spec * pow(max(0.0f, dot(rRay, vRay)), 50);         //Phong Model
 
-        //vec3 Is = (phong * vec3(light0Spec) * pow(max(dot(nRay, hRay), 0.0f), 100));
+        vec3 Is = (phong * vec3(light0Spec) * pow(max(dot(nRay, hRay), 0.0f), 100)); // Blinn - Phong Model
 
         rColor = ((Ia + Id) * objColor + Is) * g_light.color;
 
@@ -542,8 +545,14 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
         else
         {
             //cout << "Secondary ray has intersection" << endl;
+            if (shadowIntersect.objType == ObjectType::BOX)
+                rColor = 0.45f * rColor;
 
-            rColor = 0.25f * rColor;
+            else if (shadowIntersect.objType == ObjectType::SPHERE)
+                rColor = 0.25f * rColor;
+
+
+            //rColor = 0.25f * rColor; //Applying some color to the shadow
             //printPos(rColor);
             return;
         }
@@ -578,11 +587,6 @@ void rayCast()
     vertices[1 * 2 + 0] = g_cam.nbr.x * depth; vertices[1 * 2 + 1] = g_cam.nbr.y * depth;
     vertices[2 * 2 + 0] = g_cam.ntr.x * depth; vertices[2 * 2 + 1] = g_cam.ntr.y * depth;
     vertices[3 * 2 + 0] = g_cam.ntl.x * depth; vertices[3 * 2 + 1] = g_cam.ntl.y * depth;
-
-    //texCoords[0 * 2 + 0] = vertices[0 * 2 + 0]; texCoords[0 * 2 + 1] = vertices[0 * 2 + 1];
-    //texCoords[1 * 2 + 0] = vertices[1 * 2 + 0]; texCoords[1 * 2 + 1] = vertices[1 * 2 + 1];
-    //texCoords[2 * 2 + 0] = vertices[2 * 2 + 0]; texCoords[2 * 2 + 1] = vertices[2 * 2 + 1];
-    //texCoords[3 * 2 + 0] = vertices[3 * 2 + 0]; texCoords[3 * 2 + 1] = vertices[3 * 2 + 1];
 
     int k = 0;
 
