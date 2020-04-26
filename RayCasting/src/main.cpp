@@ -536,7 +536,7 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
         if (shadowStatus == IntersectType::NONE)
         {
             //cout << "Seconday ray no intersection! Do Bling Phong computation here!" << endl;
-
+            //printPos(rColor);
             return;
         }
         else
@@ -544,6 +544,7 @@ void rayTracer(const vec4& rayPoint, const vec4& rayDir, vec3& rColor)
             //cout << "Secondary ray has intersection" << endl;
 
             rColor = 0.25f * rColor;
+            //printPos(rColor);
             return;
         }
     }
@@ -585,10 +586,10 @@ void rayCast()
 
     int k = 0;
 
-    for (int i = 0; i < g_winHeight; i++)
+    for (int i = 0; i < g_winHeight ; i++)
     {
         vec4 startRowPixel = basePixelPos + (i * 1.0f * deltaUp * screenUpDirection);
-        for (int j = 0; j < g_winWidth; j++)
+        for (int j = 0; j < g_winWidth ; j++)
         {
             vec4 pos = startRowPixel + (j * 1.0f * deltaRight * screenRightDirection);
             vec4 dir = normalize(pos - g_cam.eye);
@@ -615,8 +616,8 @@ void display()
     rayCast();
     drawTexture(texCoords, vertices);
 
-    //vec4 rColor(0.0f);
-    //rayTracer(g_cam.eye, normalize(vec4(0.0f, 0.0f, 0.0f, 1.0f) - g_cam.eye), rColor);
+    //vec3 rColor(0.0f);
+    //rayTracer(g_cam.eye, normalize(vec4(0.1f, 0.24f, 0.0f, 1.0f) - g_cam.eye), rColor);
     //cout << "Color returned for the ray" << endl;
     //printPos(rColor);
 
@@ -625,9 +626,9 @@ void display()
     //ray.Draw(10.0f);
 
      //drae sphere and box
-    //for (int i=1; i<g_sphere_num; i++)
+    //for (int i=2; i<g_sphere_num; i++)
     //    g_spheres[i].Draw();
-    //for (int i=0; i<g_box_num; i++)
+    //for (int i=0; i<g_box_num-1; i++)
     //    g_boxes[i].Draw();
 
     // displaying the camera

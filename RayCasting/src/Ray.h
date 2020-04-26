@@ -51,12 +51,12 @@ public:
         glVertex3f(point.x, point.y, point.z);
         glVertex3f(p1.x, p1.y, p1.z);
 
-        glVertex3f(0.0f, 0.0f, 8.0f);
         glVertex3f(0.0f, 0.0f, -10.0f);
+        glVertex3f(0.0f, 0.21f, 10.0f);
 
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glVertex3f(0.0f, 0.0f, 1.0f);
-        glVertex3f(0.0f, 3.0f, -10.0f);
+        //glColor3f(0.0f, 0.0f, 1.0f);
+        //glVertex3f(0.0f, 0.0f, 1.0f);
+        //glVertex3f(0.0f, 3.0f, -10.0f);
 
         //glVertex3f(0.0f, 0.0f, 8.0f);
         //glVertex3f(1.0f, 1.0f, 0.0f);

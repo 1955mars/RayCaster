@@ -59,12 +59,7 @@ public: // it would be better to have some kind of protection on members...
     //Faces
     BoxFace boxFaces[6];
 
-    float error = 10e-4;
-
-    float prError1 = 0.01f;
-    float prError2 = 0.1f;
-    float shError1 = 10e-5;
-    float shError2 = 10e-3;
+    float error = 10e-5;
 
     RayType rType = RayType::PRIMARY;
     

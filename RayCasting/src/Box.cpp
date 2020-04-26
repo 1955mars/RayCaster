@@ -83,23 +83,11 @@ FaceInterType Box::RayFaceIntersection(FaceType type, const RayCasted& rayCasted
 
     //(rayDir dot faceDir)
     float dDotN = dot(rayCasted.rayDir, faceDir);
-    //if (abs(dDotN) < 1.5 * error)
 
-    if (rayCasted.rayType == RayType::PRIMARY)
+    if (abs(dDotN) < error)
     {
-        if (abs(dDotN) < prError1)
-        {
-            //cout << "Ray and Face are parallel" << endl;
-            return FaceInterType::NONE;
-        }
-    }
-    else
-    {
-        if (abs(dDotN) < prError2)
-        {
-            //cout << "Ray and Face are parallel" << endl;
-            return FaceInterType::NONE;
-        }
+        //cout << "Ray and Face are parallel" << endl;
+        return FaceInterType::NONE;
     }
 
 
@@ -109,19 +97,20 @@ FaceInterType Box::RayFaceIntersection(FaceType type, const RayCasted& rayCasted
     hitPoint.point = rayCasted.rayPoint + t * rayCasted.rayDir;
     hitPoint.normalRay = faceDir;
 
-    return dDotN > 0 ? FaceInterType::AWAY : FaceInterType::TOWARDS;
+    if (dot(rayCasted.rayDir, normalize(hitPoint.point - rayCasted.rayPoint)) < error)
+    {
+        //cout << "The ray is hitting the face from its behind, Not considering this intersection!" << endl;
+        return FaceInterType::NONE;
+    }
+
+    return dDotN > 0.0f ? FaceInterType::AWAY : FaceInterType::TOWARDS;
 }
 
 
 bool Box::isPointinBox(const vec4& q)
 {
-    //vec4 c1 = rotMat * vec4(minPos, 1.0f);
-    //vec4 c2 = rotMat * vec4(maxPos, 1.0f);
 
     vec4 p = invRotMat * q;
-
-    //vec4 newMin = { min(c1.x, c2.x), min(c1.y, c2.y), min(c1.z, c2.z), 1.0f };
-    //vec4 newMax = { max(c1.x, c2.x), max(c1.y, c2.y), max(c1.z, c2.z), 1.0f };
 
     vec4 newMin = vec4(minPos, 1.0f);
     vec4 newMax = vec4(maxPos, 1.0f);
@@ -130,25 +119,13 @@ bool Box::isPointinBox(const vec4& q)
     //cout << "newMin: (" << newMin.x << ", " << newMin.y << ", " << newMin.z << endl;
     //cout << "newMax: (" << newMax.x << ", " << newMax.y << ", " << newMax.z << endl;
 
-    if (rType == RayType::PRIMARY)
-    {
-        if ((p.x + shError1) > newMin.x && (p.x - shError1) < newMax.x &&
-            (p.y + shError1) > newMin.y && (p.y - shError1) < newMax.y &&
-            (p.z + shError1) > newMin.z && (p.z - shError1) < newMax.z)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        if ((p.x + shError2) > newMin.x && (p.x - shError2) < newMax.x &&
-            (p.y + shError2) > newMin.y && (p.y - shError2) < newMax.y &&
-            (p.z + shError2) > newMin.z && (p.z - shError2) < newMax.z)
-        {
-            return true;
-        }
-    }
 
+    if ((p.x + error) > newMin.x && (p.x - error) < newMax.x &&
+        (p.y + error) > newMin.y && (p.y - error) < newMax.y &&
+        (p.z + error) > newMin.z && (p.z - error) < newMax.z)
+    {
+        return true;
+    }
 
     return false;
 }
@@ -173,12 +150,12 @@ bool Box::RayBoxIntersection(const RayCasted& rayCasted, HitPoint& hitPoint)
                 if (dot(rayCasted.shadowPoint->normalRay, rayCasted.rayDir) > -error)
                 {
                     //cout << "Shadow ray is going out of the box, no intersection with the box" << endl;
-                    //return false;
+                    return false;
                 }
                 else
                 {
                     //cout << "Intersection with the box" << endl;
-                    //return true;
+                    return true;
                 }
             }
             else
